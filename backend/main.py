@@ -12,7 +12,8 @@ from routers import (
     contacts,
     proposals,
     campaigns,
-    files
+    files,
+    dashboard
 )
 
 logging.basicConfig(level=getattr(logging, settings.log_level))
@@ -33,6 +34,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(linkedin.router, prefix="/api/linkedin", tags=["LinkedIn"])
 app.include_router(ai.router, prefix="/api/ai", tags=["AI"])
 app.include_router(opportunities.router, prefix="/api/opportunities", tags=["Opportunities"])

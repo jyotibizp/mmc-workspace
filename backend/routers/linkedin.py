@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from middleware.auth import get_current_user, get_current_tenant_id
 from controllers.linkedin_controller import LinkedInController
-from schemas.linkedin import LinkedInPostCreate, LinkedInPostResponse
+from schemas.linkedin import LinkedInPostCreate, LinkedInPostResponse, LinkedInPostBatchCreate, BatchIngestionResponse
 from typing import List, Dict, Any
 
 router = APIRouter()
@@ -36,3 +36,14 @@ async def get_linkedin_post(
 ):
     controller = LinkedInController(db)
     return controller.get_linkedin_post(post_id, tenant_id)
+
+@router.post("/ingest/batch", response_model=BatchIngestionResponse)
+async def ingest_linkedin_posts_batch(
+    batch_data: LinkedInPostBatchCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: int = Depends(get_current_tenant_id),
+    db: Session = Depends(get_db)
+):
+    """Ingest multiple LinkedIn posts in batch. Maximum 50 posts per request."""
+    controller = LinkedInController(db)
+    return controller.ingest_linkedin_posts_batch(batch_data, current_user, tenant_id)

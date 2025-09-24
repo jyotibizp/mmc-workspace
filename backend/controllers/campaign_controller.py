@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from schemas.campaign import CampaignCreate, CampaignUpdate, CampaignResponse
+from schemas.campaign import CampaignCreate, CampaignUpdate, CampaignResponse, CampaignNoteCreate, CampaignNoteUpdate, CampaignNoteResponse
 from services.campaign_service import CampaignService
 from queries.campaign_queries import CampaignQueries
 from utils.response_helpers import not_found_error, deletion_success
@@ -110,3 +110,96 @@ class CampaignController:
         """Get campaign statistics for tenant."""
         # Use service for business logic
         return self.campaign_service.get_campaign_statistics(tenant_id)
+
+    # Campaign Notes methods
+    def create_campaign_note(
+        self,
+        note: CampaignNoteCreate,
+        tenant_id: int
+    ) -> CampaignNoteResponse:
+        """Create a new campaign note."""
+        note_data = note.model_dump()
+        note_data["tenant_id"] = tenant_id
+
+        # Validate campaign and opportunity exist and belong to tenant
+        campaign = self.queries.get_campaign_by_id(note.campaign_id, tenant_id)
+        if not campaign:
+            raise not_found_error("Campaign", note.campaign_id)
+
+        new_note = self.queries.create_campaign_note(note_data)
+        return CampaignNoteResponse.model_validate(new_note)
+
+    def get_campaign_notes(
+        self,
+        campaign_id: int,
+        tenant_id: int
+    ) -> List[CampaignNoteResponse]:
+        """Get all notes for a specific campaign."""
+        # Validate campaign exists and belongs to tenant
+        campaign = self.queries.get_campaign_by_id(campaign_id, tenant_id)
+        if not campaign:
+            raise not_found_error("Campaign", campaign_id)
+
+        notes = self.queries.get_campaign_notes(campaign_id, tenant_id)
+        return [CampaignNoteResponse.model_validate(note) for note in notes]
+
+    def get_campaign_note(
+        self,
+        note_id: int,
+        tenant_id: int
+    ) -> CampaignNoteResponse:
+        """Get a specific campaign note."""
+        note = self.queries.get_campaign_note_by_id(note_id, tenant_id)
+
+        if not note:
+            raise not_found_error("Campaign Note", note_id)
+
+        return CampaignNoteResponse.model_validate(note)
+
+    def update_campaign_note(
+        self,
+        note_id: int,
+        note_update: CampaignNoteUpdate,
+        tenant_id: int
+    ) -> CampaignNoteResponse:
+        """Update an existing campaign note."""
+        note = self.queries.get_campaign_note_by_id(note_id, tenant_id)
+
+        if not note:
+            raise not_found_error("Campaign Note", note_id)
+
+        update_data = note_update.model_dump(exclude_unset=True)
+        updated_note = self.queries.update_campaign_note(note, update_data)
+
+        return CampaignNoteResponse.model_validate(updated_note)
+
+    def delete_campaign_note(
+        self,
+        note_id: int,
+        tenant_id: int
+    ) -> dict:
+        """Delete a campaign note."""
+        note = self.queries.get_campaign_note_by_id(note_id, tenant_id)
+
+        if not note:
+            raise not_found_error("Campaign Note", note_id)
+
+        self.queries.delete_campaign_note(note)
+        return deletion_success("Campaign Note")
+
+    def get_overdue_follow_ups(
+        self,
+        tenant_id: int
+    ) -> List[CampaignNoteResponse]:
+        """Get overdue follow-up notes for a tenant."""
+        notes = self.queries.get_overdue_follow_ups(tenant_id)
+        return [CampaignNoteResponse.model_validate(note) for note in notes]
+
+    def get_notes_by_opportunity(
+        self,
+        opportunity_id: int,
+        tenant_id: int
+    ) -> List[CampaignNoteResponse]:
+        """Get all notes for a specific opportunity."""
+        notes = self.queries.get_notes_by_opportunity(opportunity_id, tenant_id)
+        return [CampaignNoteResponse.model_validate(note) for note in notes]
